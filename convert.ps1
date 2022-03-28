@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory)][String]$input_file, #The CSV file to bulk upload
   [Parameter(Mandatory)][String]$output_file_basename = 'output', #The filename to use for output, script will append numbers and .json to this when no input is provided
   [String]$aws_profile = 'local', #The AWS CLI profile name to use for uploading to, defaults to local for safety
-  [Parameter(Mandatory)][String]$tableName = 'nortek-ofallon-prod-vipTable' #The name of the DDB table to upload to
+  [Parameter(Mandatory)][String]$tableName = 'local_table' #The name of the DDB table to upload to
 )
 
 
@@ -184,7 +184,6 @@ foreach ($file in $csv_files) {
 }
 
 #Write the data to DynamoDB
-
 foreach ($file in $filenames) {
 
     if ($aws_profile -eq 'local') {
