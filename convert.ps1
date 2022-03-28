@@ -193,7 +193,7 @@ foreach ($file in $filenames) {
 
     } else {
 
-        #aws dynamodb batch-write-item --request-items file://$file --profile $aws_profile
+        aws dynamodb batch-write-item --request-items file://$file --profile $aws_profile
 
     }
 
