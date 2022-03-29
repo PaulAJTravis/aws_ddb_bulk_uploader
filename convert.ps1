@@ -183,6 +183,14 @@ foreach ($file in $csv_files) {
 
 }
 
+#Verify profile is correct _before_ writing to DB
+#read key twice to clear the extraneous enter that is usually in the stdin buffer
+Write-Host "`nAbout to write to file using the profile: $aws_profile" -ForegroundColor red
+Write-Host "if this is incorrect, please press [ctrl]+c"
+Write-Host "otherwise, press any key to continue...`n"
+$host.UI.RawUI.ReadKey("NoEcho,IncludeKeyUp") > $null
+$host.UI.RawUI.ReadKey("NoEcho,IncludeKeyUp") > $null
+
 #Write the data to DynamoDB
 foreach ($file in $filenames) {
 
@@ -193,6 +201,7 @@ foreach ($file in $filenames) {
 
     } else {
 
+        echo "Writing items to remote DB with following information:`nFileName:`t$file`nProfile:`t$aws_profile"
         aws dynamodb batch-write-item --request-items file://$file --profile $aws_profile
 
     }
