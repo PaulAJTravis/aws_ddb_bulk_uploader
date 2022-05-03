@@ -59,8 +59,8 @@ function Format-JSON {
     this is done to match DDB formatting requirements.
     #>
     $formatted_json = $formatted_json -replace '\\', ''
-    $formatted_json = $formatted_json -replace '[^"]{', "{`n`"PutRequest`": {`n `"Item`": {"
-    $formatted_json = $formatted_json -replace '((}[^"])|(},[^"]))', "}`n}`n},`n"
+    $formatted_json = $formatted_json -replace '[^"\[,]{', "{`n`"PutRequest`": {`n `"Item`": {"
+    $formatted_json = $formatted_json -replace '((}[^{\]",])|(},[^{\]"]))', "}`n}`n},`n"
     $formatted_json = $formatted_json -replace '"{', '{'
     $formatted_json = $formatted_json -replace '}"', '}'
 
@@ -97,7 +97,7 @@ for ($i = 0; $i -lt $formatted_csv.length; $i++) {
     $item_length = $formatted_csv[$i].$header.length
 
     #If the CSV wrapped the cell in quotes we need to get rid of that as JSON won't like it.
-    if ($formatted_csv[$i].$header -match '\".*\"') {
+    if ($formatted_csv[$i].$header -match '\".*\"' -and -not ($formatted_csv[$i].$header -match '\[(\{"(S|N|BOOL|NULL)":(| )"[a-zA-Z\-_0-9]*"\}(,|, ){0,1})+\]')) {
         $formatted_csv[$i].$header = $formatted_csv[$i].$header.remove(0,1)
         $formatted_csv[$i].$header = $formatted_csv[$i].$header.remove($item_length - 2, 1)
     }
@@ -105,17 +105,21 @@ for ($i = 0; $i -lt $formatted_csv.length; $i++) {
     #Test if the item is numeric or not and format the data accordingly
     #DDB expects a type specifier for each entry, e.g. S, N, B, etc.
     #A list of specifiers can be found here: https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_AttributeValue.html
-    if ($formatted_csv[$i].$header -match '^-{0,1}[0-9]+$') {
+    if ($formatted_csv[$i].$header -match '^-{0,1}[0-9]+\.{0,1}[0-9]*$') {
 
         $formatted_csv[$i].$header = "{`"N`": `"$($formatted_csv[$i].$header)`"}" #Number
 
     } elseif ([String]::IsNullOrWhiteSpace($formatted_csv[$i].$header)) {
 
-        $formatted_csv[$i].$header = "{`"NULL`": `"$($formatted_csv[$i].$header)`"}" #Null
+        $formatted_csv[$i].$header = "{`"S`": `" `" }" #Null, not using actual null operator b/c HASH/RANGE keys can't be null or blank
 
     } elseif ($formatted_csv[$i].$header -is [Boolean]) {
 
         $formatted_csv[$i].$header = "{`"BOOL`": `"$($formatted_csv[$i].$header)`"}" #Boolean
+
+    } elseif ($formatted_csv[$i].$header -match '\[(\{"(S|N|BOOL|NULL)":(| )"[a-zA-Z\-_0-9]*"\}(,|, ){0,1})+\]') {
+
+        $formatted_csv[$i].$header = "{`"L`": $($formatted_csv[$i].$header)}" #List
 
     } else {
 
@@ -198,6 +202,11 @@ foreach ($file in $filenames) {
 
         echo "Batch writing items to local DB with following information:`nFilename:`t$file`nProfile:`t$aws_profile"
         aws dynamodb batch-write-item --request-items file://$file --endpoint-url http://localhost:8000 --profile $aws_profile
+
+    } elseif ($aws_profile -eq 'none') {
+
+        echo "Writing items to remote DB with the following information: `nFilename: `t$file`nProfile:`tNone, will use environment variables or default profile"
+        aws dynamodb batch-write-item --request-items file://$file
 
     } else {
 
