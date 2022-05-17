@@ -113,7 +113,7 @@ for ($i = 0; $i -lt $formatted_csv.length; $i++) {
 
         $formatted_csv[$i].$header = "{`"S`": `" `" }" #Null, not using actual null operator b/c HASH/RANGE keys can't be null or blank
 
-    } elseif ($formatted_csv[$i].$header -is [Boolean]) {
+    } elseif ($formatted_csv[$i].$header -is [Boolean] -or $formatted_csv[$i].$header -match '\(?i)(True|False)\') {
 
         $formatted_csv[$i].$header = "{`"BOOL`": `"$($formatted_csv[$i].$header)`"}" #Boolean
 
@@ -187,9 +187,12 @@ foreach ($file in $csv_files) {
 
 }
 
+$env_name = aws sts get-caller-identity
+
 #Verify profile is correct _before_ writing to DB
 #read key twice to clear the extraneous enter that is usually in the stdin buffer
 Write-Host "`nAbout to write to file using the profile: $aws_profile" -ForegroundColor red
+Write-Host "This is associated with the account: $env_name" -ForegroundColor red
 Write-Host "if this is incorrect, please press [ctrl]+c"
 Write-Host "otherwise, press any key to continue...`n"
 $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyUp") > $null
@@ -205,7 +208,7 @@ foreach ($file in $filenames) {
 
     } elseif ($aws_profile -eq 'none') {
 
-        echo "Writing items to remote DB with the following information: `nFilename: `t$file`nProfile:`tNone, will use environment variables or default profile"
+        echo "Writing items to remote DB with the following information: `nFilename: `t$file`nProfile:`t$env_name"
         aws dynamodb batch-write-item --request-items file://$file
 
     } else {
