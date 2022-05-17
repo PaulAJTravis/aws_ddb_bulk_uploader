@@ -113,7 +113,7 @@ for ($i = 0; $i -lt $formatted_csv.length; $i++) {
 
         $formatted_csv[$i].$header = "{`"S`": `" `" }" #Null, not using actual null operator b/c HASH/RANGE keys can't be null or blank
 
-    } elseif ($formatted_csv[$i].$header -is [Boolean] -or $formatted_csv[$i].$header -match '\(?i)(True|False)\') {
+    } elseif ($formatted_csv[$i].$header -is [Boolean] -or $formatted_csv[$i].$header -imatch '(True|False)') {
 
         $formatted_csv[$i].$header = "{`"BOOL`": `"$($formatted_csv[$i].$header)`"}" #Boolean
 
@@ -187,7 +187,7 @@ foreach ($file in $csv_files) {
 
 }
 
-$env_name = aws sts get-caller-identity
+$env_name = aws sts get-caller-identity --query "Account" --output "text" --profile $aws_profile
 
 #Verify profile is correct _before_ writing to DB
 #read key twice to clear the extraneous enter that is usually in the stdin buffer
